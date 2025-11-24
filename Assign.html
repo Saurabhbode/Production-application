@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Issue View </title>
+    <style>
+        /* --- CSS VARIABLES & CORE STYLES (Company DASH Theme) --- */
+        :root {
+            --primary-color: #6c7be3; /* Purple/Blue from Dashboard */
+            --secondary-color: #5a66d4;
+            --light-grey: #f7f7f9;  /* Body background */
+            --field-bg-color: #f7f8fa; /* Light grey background for fields (like in the Edit Issue image) */
+            --text-color: #333;
+            --label-color: #5e6c84; 
+        }
+
+        body { 
+            margin: 0;
+            font-family: 'Montserrat', sans-serif;
+            background-color: var(--light-grey);
+            padding: 30px;
+        }
+        .issue-container { 
+            /* --- UPDATED: Increased max-width for a wider layout --- */
+            max-width: 1200px; 
+            /* -------------------------------------------------------- */
+            margin: 0 auto; 
+            background-color: white; 
+            padding: 25px; 
+            border-radius: 6px; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08); 
+        }
+
+        /* --- HEADER STYLES --- */
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .page-header h1 {
+            font-size: 1.5em;
+            font-weight: 600;
+            color: var(--text-color);
+            margin: 0;
+        }
+        .configure-btn {
+            padding: 8px 15px;
+            background-color: #f0f0f5; 
+            color: #444;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        .configure-btn:hover {
+            background-color: #e6e6e6;
+        }
+        .post-comment-btn {
+            padding: 8px 15px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        .post-comment-btn:hover {
+            background-color: var(--secondary-color);
+        }
+
+        /* --- FIELD ROW STYLES --- */
+        .field-row {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 20px;
+            gap: 20px;
+        }
+        .field-label {
+            width: 150px; 
+            font-weight: 600;
+            color: var(--label-color);
+            padding-top: 8px; 
+            flex-shrink: 0;
+        }
+        .field-content {
+            flex-grow: 1;
+        }
+
+        /* --- INPUT & SELECT STYLES --- */
+        .editable-select, .editable-input {
+            display: flex; 
+            align-items: center;
+            width: 100%;
+            padding: 6px 8px;
+            background-color: var(--field-bg-color); 
+            border: 1px solid #ccc; 
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 0.95em;
+            color: var(--text-color);
+        }
+        .editable-select select, .editable-input input, .field-content textarea {
+            flex-grow: 1;
+            border: none;
+            background: none;
+            padding: 0;
+            margin: 0;
+            font-family: inherit;
+            color: inherit;
+            outline: none;
+            cursor: pointer;
+        }
+        .editable-input input[type="date"] {
+            cursor: text;
+        }
+        
+        /* Textarea for new comment needs a visible border */
+        .field-content textarea {
+            width: 100%; 
+            min-height: 100px; 
+            padding: 10px; 
+            border: 1px solid #ccc; 
+            border-radius: 4px; 
+            resize: vertical;
+            background-color: white; 
+            color: var(--text-color);
+            font-size: 0.9em;
+            cursor: text;
+        }
+
+        /* Styling for supplementary text */
+        .field-supplementary {
+            font-size: 0.8em;
+            color: var(--label-color);
+            margin-top: 4px;
+        }
+        .field-supplementary a {
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+        .field-supplementary a:hover {
+            text-decoration: underline;
+        }
+        
+        /* --- PRIORITY ICON STYLING --- */
+        .priority-content {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .priority-icon {
+            color: var(--primary-color);
+            font-size: 1.2em;
+        }
+        .help-icon {
+            color: #ccc;
+            cursor: help;
+        }
+
+        /* --- COMMENT SECTION STYLES --- */
+        .comment-section-content {
+            padding-top: 15px;
+            border-top: 1px solid #e0e0e0;
+        }
+        .comment-editor-placeholder {
+            border: 1px solid #e0e0e0;
+            border-radius: 4px 4px 0 0; 
+            background-color: #f7f7f7;
+            color: #5e6c84;
+            padding: 5px 10px;
+            font-size: 0.85em;
+            font-weight: 500;
+        }
+        .comment-actions-bar {
+            padding: 10px 0;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        /* --- RENDERED COMMENTS STYLES --- */
+        .comment-list {
+            margin-top: 25px;
+        }
+        .comment-card {
+            padding: 15px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .comment-meta {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .comment-author {
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-right: 15px;
+        }
+        .comment-date {
+            font-size: 0.8em;
+            color: #888;
+        }
+        .comment-text {
+            color: var(--text-color);
+            line-height: 1.5;
+            white-space: pre-wrap; 
+        }
+        .comment-actions button {
+            background: none;
+            border: none;
+            color: var(--label-color);
+            cursor: pointer;
+            font-size: 0.85em;
+            margin-right: 10px;
+            transition: color 0.2s;
+        }
+        .comment-actions button:hover {
+            color: var(--primary-color);
+        }
+
+        /* Edit state styles */
+        .comment-card.editing .comment-text {
+            display: none;
+        }
+        .comment-card .edit-textarea {
+            width: 100%;
+            min-height: 80px;
+            padding: 8px;
+            border: 1px solid var(--primary-color);
+            border-radius: 4px;
+            box-sizing: border-box;
+            resize: vertical;
+            display: none; 
+        }
+        .comment-card.editing .edit-textarea {
+            display: block;
+        }
+        .comment-card .save-btn {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="issue-container">
+        
+        <div class="page-header">
+            <h1>Edit Issue: <span style="font-weight: 400; color: #888;">[Ticket ID 1234]</span></h1>
+            <button class="configure-btn">⚙️ Configure Fields ▾</button>
+        </div>
+
+        <div class="field-row">
+            <div class="field-label">Assignee</div>
+            <div class="field-content">
+                <div class="editable-select">
+                    <select id="assignee-select" name="assignee">
+                        <option value="unassigned" selected>Unassigned</option>
+                        <option value="user1">Kim</option>
+                        <option value="user2">James</option>
+                        <option value="user3">Taylor</option>
+                    </select>
+                </div>
+                <div class="field-supplementary">
+                    <a href="#" onclick="assignToMe(event)">Assign to me</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="field-row">
+            <div class="field-label">Priority</div>
+            <div class="field-content priority-content">
+                <div class="editable-select">
+                    <select name="priority">
+                        <option value="high">P1 - High</option>
+                        <option value="medium" selected>P2 - Medium</option>
+                        <option value="low">P3 - Low</option>
+                    </select>
+                </div>
+                <span class="help-icon" title="Priority levels define the issue's urgency.">❓</span>
+            </div>
+        </div>
+
+        <div class="field-row">
+            <div class="field-label">Due Date</div>
+            <div class="field-content">
+                <div class="editable-input">
+                    <input type="date" value="2025-10-03">
+                    <span class="priority-icon">📅</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="field-row">
+            <div class="field-label">Reason</div>
+            <div class="field-content">
+                <div class="editable-select">
+                    <select name="reason">
+                        <option value="unpaid" selected>Unpaid</option>
+                        <option value="denied">Denied</option>
+                        <option value="other-paid">Paid</option>
+                        <option value="other-bad-debt">Bad Debt</option>
+                    </select>
+                </div>
+                <div class="field-supplementary">
+                    Denial Reason
+                </div>
+            </div>
+        </div>
+
+        <div class="field-row">
+            <div class="field-label">Workflow Action</div>
+            <div class="field-content">
+                <div class="editable-select">
+                    <select name="workflow">
+                        <option value="research" selected>Research Remaining Balance</option>
+                        <option value="escalate">Escalate Issue</option>
+                    </select>
+                </div>
+                <div class="field-supplementary">
+                    RCM Workflow
+                </div>
+            </div>
+        </div>
+        
+        <div class="field-row comment-section-content">
+            <div class="field-label">Comment</div>
+            <div class="field-content">
+                
+                <textarea id="new-comment-text" placeholder="Add a comment..."></textarea>
+                <div class="comment-actions-bar">
+                    <button class="post-comment-btn" onclick="addComment()">Post Comment</button>
+                </div>
+
+                <div class="comment-list" id="comment-list">
+                    </div>
+            </div>
+        </div>
+        </div>
+    
+    <script>
+        // --- JAVASCRIPT FOR COMMENT MANAGEMENT ---
+
+        let comments = []; 
+        const commentList = document.getElementById('comment-list');
+        const newCommentTextarea = document.getElementById('new-comment-text');
+
+        // Placeholder for the current user's name (in a real app, this comes from the session)
+        const CURRENT_USER = 'You (Current User)';
+
+        function assignToMe(event) {
+            event.preventDefault();
+            const assigneeSelect = document.getElementById('assignee-select');
+            // Assuming the current user's option value is 'user1' (Kim)
+            assigneeSelect.value = 'user1'; 
+        }
+
+        // Function to render all comments
+        function renderComments() {
+            commentList.innerHTML = '';
+            // Display newest comment first (reverse order)
+            const sortedComments = [...comments].reverse();
+
+            if (sortedComments.length === 0) {
+                commentList.innerHTML = '<p style="text-align: center; color: #888; padding: 20px 0;">No comments yet. Be the first to post!</p>';
+                return;
+            }
+
+            sortedComments.forEach(comment => {
+                const card = document.createElement('div');
+                card.className = 'comment-card';
+                card.id = `comment-${comment.id}`;
+                
+                // Format date for display
+                const dateOptions = { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+                const formattedDate = new Date(comment.date).toLocaleDateString(undefined, dateOptions);
+
+                // Determine if the comment is editable/deletable by the current user
+                const isAuthor = comment.author === CURRENT_USER;
+                const actionsHtml = isAuthor ? `
+                    <button onclick="toggleEdit(${comment.id})" class="edit-btn">Edit</button>
+                    <button onclick="saveComment(${comment.id})" class="save-btn post-comment-btn">Save</button>
+                    <button onclick="deleteComment(${comment.id})" class="delete-btn">Delete</button>
+                ` : `<button disabled style="color: #ccc; cursor: default;">View Only</button>`;
+
+                card.innerHTML = `
+                    <div class="comment-meta">
+                        <div class="comment-author">${comment.author}</div>
+                        <div class="comment-date">${formattedDate}</div>
+                    </div>
+                    <div class="comment-text">${comment.text}</div>
+                    <textarea class="edit-textarea">${comment.text}</textarea>
+                    <div class="comment-actions">
+                        ${actionsHtml}
+                    </div>
+                `;
+                commentList.appendChild(card);
+            });
+        }
+
+        // ADD Comment
+        function addComment() {
+            const text = newCommentTextarea.value.trim();
+            if (text === '') {
+                alert('Comment cannot be empty.');
+                return;
+            }
+
+            const newComment = {
+                id: Date.now(), 
+                author: CURRENT_USER, 
+                text: text,
+                date: new Date().toISOString()
+            };
+
+            comments.push(newComment);
+            newCommentTextarea.value = ''; 
+            renderComments();
+        }
+
+        // TOGGLE Edit Mode
+        function toggleEdit(id) {
+            const card = document.getElementById(`comment-${id}`);
+            const isEditing = card.classList.toggle('editing');
+            
+            const editTextarea = card.querySelector('.edit-textarea');
+            const commentText = card.querySelector('.comment-text');
+            const editBtn = card.querySelector('.edit-btn');
+            const saveBtn = card.querySelector('.save-btn');
+            const deleteBtn = card.querySelector('.delete-btn');
+
+            if (isEditing) {
+                // Entering edit mode
+                editTextarea.value = commentText.textContent.trim(); // Ensure content is in textarea
+                editBtn.style.display = 'none';
+                deleteBtn.style.display = 'none';
+                saveBtn.style.display = 'inline-block';
+            } else {
+                // Exiting edit mode
+                editBtn.style.display = 'inline-block';
+                deleteBtn.style.display = 'inline-block';
+                saveBtn.style.display = 'none';
+            }
+        }
+
+        // SAVE Comment
+        function saveComment(id) {
+            const card = document.getElementById(`comment-${id}`);
+            const newText = card.querySelector('.edit-textarea').value.trim();
+            
+            if (newText === '') {
+                alert('Comment cannot be empty. Please delete it instead.');
+                return;
+            }
+
+            const commentIndex = comments.findIndex(c => c.id === id);
+            if (commentIndex !== -1) {
+                comments[commentIndex].text = newText;
+            }
+
+            // Exit edit mode and re-render the view
+            card.classList.remove('editing');
+            renderComments();
+        }
+
+        // DELETE Comment
+        function deleteComment(id) {
+            if (confirm('Are you sure you want to delete this comment?')) {
+                comments = comments.filter(c => c.id !== id);
+                renderComments();
+            }
+        }
+
+        // Initial render when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+             // Add a couple of sample comments for demonstration
+            comments.push({ id: 1, author: 'Team Lead', text: 'Please prioritize this as the due date is fast approaching.', date: new Date(Date.now() - 86400000).toISOString() });
+            comments.push({ id: 2, author: CURRENT_USER, text: 'I have started research on the remaining balance this morning.', date: new Date(Date.now() - 3600000).toISOString() });
+            renderComments();
+        });
+
+    </script>
+</body>
+</html>

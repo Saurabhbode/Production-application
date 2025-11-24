@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Issue Details View (Simplified)</title>
+    <style>
+        /* Converted CSS to match the Company DASH visual style */
+.comment-section {
+    max-width: 1000px;
+    margin: 20px auto;
+    background-color: white;
+    padding: 20px;
+    border-radius: 5px;
+    /* Keeping a subtle shadow */
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1); 
+}
+.comment-input-area {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+#comment-text {
+    padding: 10px;
+    border: 1px solid #ccc; /* Soft border */
+    border-radius: 4px; /* Slightly more rounded corners */
+    resize: vertical;
+    min-height: 80px;
+    font-size: 1em;
+}
+#post-comment-btn {
+    align-self: flex-start;
+    padding: 10px 20px;
+    /* Primary color picked from the dashboard's sidebar/active elements */
+    background-color: #6c7be3; 
+    color: white;
+    border: none;
+    border-radius: 4px; 
+    cursor: pointer;
+    font-weight: 500; /* Slightly less bold */
+    transition: background-color 0.2s;
+}
+#post-comment-btn:hover {
+    /* Slightly darker purple/blue on hover */
+    background-color: #5a66d4;
+}
+.comments-list {
+    border-top: 1px solid #e0e0e0; /* Lighter separator */
+    padding-top: 15px;
+}
+.comment-item {
+    padding: 15px 0; /* More vertical padding */
+    border-bottom: 1px solid #f0f0f0; /* Solid, very light separator */
+    display: flex; 
+    flex-direction: column;
+}
+.comment-item:last-child {
+    border-bottom: none;
+}
+.comment-meta {
+    font-size: 0.85em; /* Slightly larger font */
+    color: #888; /* Softer gray for metadata */
+    margin-bottom: 8px; /* More space below metadata */
+    display: flex;
+    justify-content: space-between; 
+    align-items: center;
+}
+.comment-author-info {
+    display: inline-block;
+}
+.comment-author {
+    font-weight: 600; /* Slightly bolder */
+    color: #333; /* Darker, clearer text */
+}
+.comment-body {
+    line-height: 1.5; /* Increased line height for readability */
+    color: #444;
+    margin: 0;
+    font-family: 'Montserrat', sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: var(--light-grey);
+    overflow: hidden;
+}
+/* New Styles for Edit Functionality */
+.comment-actions button {
+    background: none;
+    border: none;
+    color: #6c7be3; /* Using the primary dash color */
+    font-size: 0.85em;
+    cursor: pointer;
+    margin-left: 15px; /* More spacing */
+    padding: 0;
+    font-weight: 500;
+    transition: color 0.2s;
+}
+.comment-actions button:hover {
+    text-decoration: none; /* Removing underline */
+    color: #5a66d4; /* Darker color on hover */
+}
+.edit-textarea {
+    width: 98%;
+    padding: 8px;
+    border: 1px solid #6c7be3; /* Border using the primary dash color */
+    border-radius: 4px;
+    resize: vertical;
+    min-height: 60px;
+    font-size: 1em;
+    margin-bottom: 5px;
+    /* Adding a light shadow to the active edit area */
+    box-shadow: 0 0 0 1px #6c7be3 inset; 
+}
+    </style>
+</head>
+<body>
+    <div class="comment-section">
+        <h3>Add Comment</h3>
+        
+        <div class="comment-input-area">
+            <textarea id="comment-text" placeholder="Type your comment here..."></textarea>
+            <button id="post-comment-btn">Post Comment</button>
+        </div>
+
+        <h3>Existing Comments (<span id="comment-count">0</span>)</h3>
+        <div class="comments-list" id="comments-container">
+            <div class="comment-item">
+                <div class="comment-meta">
+                    <span class="comment-author-info">
+                        <span class="comment-author">System</span> - 
+                        <span class="comment-date">29/Aug/22 11:41 PM</span>
+                    </span>
+                    </div>
+                <div class="comment-body">
+                    Issue status automatically updated to PENDING by the Revenue Recovery workflow.
+                </div>
+            </div>
+            
+        </div>
+    </div>
+
+    <script>
+        const commentButton = document.getElementById('post-comment-btn');
+        const commentTextarea = document.getElementById('comment-text');
+        const commentsContainer = document.getElementById('comments-container');
+        const commentCountSpan = document.getElementById('comment-count');
+        
+        const CURRENT_USER_NAME = "Current User (You)";
+        
+        function updateCommentCount() {
+            // Recalculates the count based on how many items are in the container
+            const count = commentsContainer.querySelectorAll('.comment-item').length;
+            commentCountSpan.textContent = count;
+        }
+        
+        // Ensure count is correct on load
+        updateCommentCount();
+
+        // --- EDIT COMMENT FUNCTIONALITY ---
+        
+        function enableEdit(commentItem) {
+            const bodyDiv = commentItem.querySelector('.comment-body');
+            const actionsDiv = commentItem.querySelector('.comment-actions');
+            
+            // 1. Get the current text
+            const currentText = bodyDiv.innerHTML.replace(/<br>/g, '\n').trim();
+            
+            // 2. Replace the body text with a textarea
+            bodyDiv.innerHTML = `<textarea class="edit-textarea">${currentText}</textarea>`;
+            
+            // 3. Change the Edit button to Save and add a Cancel button
+            actionsDiv.innerHTML = `
+                <button class="save-btn">Save</button>
+                <button class="cancel-btn">Cancel</button>
+            `;
+            
+            // 4. Attach event listeners to the new buttons
+            const saveBtn = actionsDiv.querySelector('.save-btn');
+            const cancelBtn = actionsDiv.querySelector('.cancel-btn');
+            const editArea = bodyDiv.querySelector('.edit-textarea');
+            
+            // Auto-focus and move cursor to end
+            editArea.focus();
+            editArea.selectionStart = editArea.selectionEnd = editArea.value.length;
+
+
+            saveBtn.addEventListener('click', () => saveEdit(commentItem, editArea.value));
+            cancelBtn.addEventListener('click', () => cancelEdit(commentItem, currentText)); // Pass original text back
+        }
+
+        function saveEdit(commentItem, newText) {
+            const bodyDiv = commentItem.querySelector('.comment-body');
+            const actionsDiv = commentItem.querySelector('.comment-actions');
+
+            // Save the new text (and replace newlines with <br>)
+            bodyDiv.innerHTML = newText.replace(/\n/g, '<br>');
+            
+            // Restore the Edit button
+            actionsDiv.innerHTML = `<button class="edit-btn">Edit</button>`;
+            
+            // Re-attach the main handler
+            actionsDiv.querySelector('.edit-btn').addEventListener('click', (e) => {
+                e.preventDefault();
+                enableEdit(commentItem);
+            });
+        }
+
+        function cancelEdit(commentItem, originalText) {
+            // Revert to original text and restore the Edit button
+            saveEdit(commentItem, originalText);
+        }
+
+        // --- POST NEW COMMENT FUNCTIONALITY ---
+        
+        commentButton.addEventListener('click', function() {
+            const newCommentText = commentTextarea.value.trim();
+
+            if (newCommentText === "") {
+                alert("Please enter a comment before posting.");
+                return; 
+            }
+
+            // 1. Get current date/time for the timestamp
+            const now = new Date();
+            const dateString = now.toLocaleDateString('en-GB', { 
+                day: '2-digit', 
+                month: 'short', 
+                year: '2-digit' 
+            }).replace(/\s/g, '/');
+            const timeString = now.toLocaleTimeString('en-US', { 
+                hour: '2-digit', 
+                minute: '2-digit', 
+                hour12: true 
+            }); 
+            
+            const author = CURRENT_USER_NAME;
+            const formattedTime = dateString.replace(/\./g, '') + ' ' + timeString.replace(' ', '');
+
+            // 2. Create the new comment HTML structure
+            const newCommentItem = document.createElement('div');
+            newCommentItem.classList.add('comment-item');
+            // Add attribute to identify this as an editable user comment
+            newCommentItem.setAttribute('data-user-comment', 'true');
+            
+            newCommentItem.innerHTML = `
+                <div class="comment-meta">
+                    <span class="comment-author-info">
+                        <span class="comment-author">${author}</span> - 
+                        <span class="comment-date">${formattedTime}</span>
+                    </span>
+                    <span class="comment-actions">
+                        <button class="edit-btn">Edit</button>
+                    </span>
+                </div>
+                <div class="comment-body">
+                    ${newCommentText.replace(/\n/g, '<br>')}
+                </div>
+            `;
+
+            // 3. Attach the edit event listener immediately to the new button
+            const editButton = newCommentItem.querySelector('.edit-btn');
+            editButton.addEventListener('click', (e) => {
+                e.preventDefault();
+                enableEdit(newCommentItem);
+            });
+
+            // 4. Insert the new comment at the top
+            commentsContainer.prepend(newCommentItem);
+
+            // 5. Clear the textarea and update the count
+            commentTextarea.value = '';
+            updateCommentCount();
+        });
+    </script>
+</body>
+</html>

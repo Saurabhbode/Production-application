@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Issue Details View (Read-Only)</title>
+    <style>
+        /* --- CSS VARIABLES & CORE STYLES (Company DASH Theme) --- */
+        :root {
+            --primary-color: #6c7be3; /* Purple/Blue from Dashboard */
+            --secondary-color: #5a66d4;
+            --light-grey: #f7f7f9; 
+        }
+
+        body { 
+            margin: 0;
+            font-family: 'Montserrat', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: var(--light-grey);
+            overflow: auto;
+            padding: 20px;
+        }
+        .issue-container { 
+            max-width: 1000px; 
+            width: 100%;
+            background-color: white; 
+            padding: 25px; 
+            border-radius: 6px; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08); 
+        }
+        .header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 25px; 
+            border-bottom: 1px solid #e0e0e0; 
+            padding-bottom: 15px; 
+        }
+        .actions button { 
+            padding: 10px 18px; 
+            margin-right: 10px; 
+            border: none; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            font-weight: 500; 
+            transition: background-color 0.2s;
+        }
+        .comment-btn { 
+            background-color: var(--primary-color); 
+            color: white; 
+        }
+        .comment-btn:hover {
+            background-color: var(--secondary-color); 
+        }
+        .secondary-btn {
+            background-color: #f0f0f5; 
+            color: #444;
+        }
+        .secondary-btn:hover {
+            background-color: #e0e0e0;
+        }
+        .error-btn {
+            color: #cc0000 !important;
+            border: 1px solid #f9caca !important;
+            background-color: #fef2f2;
+            font-weight: 600 !important;
+        }
+        .error-btn:hover {
+            background-color: #f9caca;
+        }
+
+        /* --- CONTENT & FIELD STYLES --- */
+        .content { 
+            display: flex; 
+            justify-content: space-between; 
+            gap: 30px; 
+        }
+        .details-col, .people-col, .dates-col { 
+            flex: 1; 
+            padding-right: 0; 
+        }
+        .section-header { 
+            font-size: 1.1em; 
+            font-weight: 600; 
+            color: #444; 
+            margin-bottom: 15px; 
+            padding-top: 20px; 
+            border-top: 1px solid #f0f0f0; 
+        }
+        .field-row { 
+            display: flex; 
+            align-items: center; 
+            margin-bottom: 12px; 
+        }
+        .field-label { 
+            font-weight: 400; 
+            color: #888; 
+            width: 130px; 
+            flex-shrink: 0; 
+        }
+        /* New style for read-only static text */
+        .read-only-value {
+            font-weight: 500;
+            color: #333;
+            padding: 6px 0; /* Align with input padding */
+        }
+
+
+        /* --- EDITABLE INPUT STYLES --- */
+        .editable-field {
+            flex-grow: 1;
+        }
+        .editable-field input, .editable-field select, .editable-field textarea {
+            width: 100%;
+            padding: 6px 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 0.9em;
+            color: #333;
+            box-sizing: border-box;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        /* Disable the focus effect for read-only fields */
+        .editable-field input:focus, .editable-field select:focus, .editable-field textarea:focus {
+            border-color: #ccc; /* Keep the default border color */
+            outline: none;
+            box-shadow: none;
+        }
+        
+        /* Visually style disabled fields to look like static text */
+        .editable-field input[disabled],
+        .editable-field select[disabled],
+        .editable-field textarea[disabled] {
+            background-color: #fff; /* White background */
+            border: 1px solid #fff; /* Invisible border */
+            cursor: default;
+            color: #333;
+            font-weight: 500; /* Make text bolder to look like static value */
+            padding-left: 0;
+            padding-right: 0;
+        }
+        /* For select elements, hide the dropdown arrow if possible or style differently */
+        .editable-field select[disabled] {
+            appearance: none; /* Hide default dropdown arrow in modern browsers */
+            -moz-appearance: none;
+            -webkit-appearance: none;
+        }
+
+        /* --- TAG AND STATUS STYLES --- */
+        .tag { 
+            display: inline-block; 
+            padding: 3px 10px; 
+            border-radius: 12px; 
+            font-size: 0.85em; 
+            font-weight: 600; 
+            margin-right: 8px; 
+            text-transform: uppercase; 
+        }
+        .red-tag { 
+            background-color: #fef2f2; 
+            color: #cc0000; 
+            border: 1px solid #f9caca; 
+        }
+        .status-pending { 
+            color: var(--primary-color); 
+            font-weight: 600; 
+        }
+        .unassigned { 
+            color: #888; 
+            font-weight: 500; 
+            font-style: italic; 
+        }
+        .resolution-text { 
+            color: #00875a; 
+            font-weight: 600; 
+        }
+        .date-value { 
+            font-weight: 600; 
+            color: #333;
+        }
+
+        /* --- ASSIGN DROPDOWN/POPUP STYLES (Kept for action button) --- */
+        .dropdown-wrapper {
+            position: relative; 
+            display: inline-block;
+            vertical-align: top;
+        }
+        #assign-toggle {
+            display: none;
+        }
+        .dropdown-label {
+            display: inline-block;
+            padding: 10px 18px; 
+            margin-right: 10px; 
+            border: none; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            font-weight: 500; 
+            transition: background-color 0.2s;
+            background-color: #f0f0f5; 
+            color: #444;
+        }
+        .dropdown-label:hover {
+            background-color: #e0e0e0;
+        }
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            top: 100%; 
+            left: 0;
+            min-width: 200px;
+            z-index: 10;
+            margin-top: 5px; 
+            background-color: white;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            padding: 8px 0;
+        }
+        #assign-toggle:checked ~ .dropdown-content {
+            display: block;
+        }
+        .dropdown-item {
+            padding: 8px 15px;
+            cursor: pointer;
+            font-size: 0.95em;
+            color: #333;
+            display: flex;
+            align-items: center;
+        }
+        .dropdown-item:hover {
+            background-color: var(--primary-color); 
+            color: white;
+        }
+        .dropdown-item .user-avatar {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background-color: #ccc; 
+            margin-right: 10px;
+        }
+
+        /* --- NEW STYLES FOR COMMENT SECTION --- */
+        .comment-section {
+            width: 100%;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #f0f0f0;
+        }
+
+        .comment-input-area {
+            margin-bottom: 25px;
+            padding: 15px;
+            background-color: #f9f9fb; 
+            border-radius: 4px;
+            border: 1px solid #eee;
+        }
+
+        .comment-input-area textarea {
+            width: 100%;
+            min-height: 80px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            resize: vertical;
+            font-size: 0.95em;
+            box-sizing: border-box;
+            margin-bottom: 10px;
+        }
+
+        .comment-list {
+            margin-top: 20px;
+        }
+
+        .comment-card {
+            padding: 15px;
+            border-bottom: 1px solid #e0e0e0;
+            margin-bottom: 15px;
+        }
+
+        .comment-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .comment-author {
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        .comment-date {
+            font-size: 0.8em;
+            color: #888;
+        }
+
+        .comment-text {
+            margin-bottom: 10px;
+            color: #333;
+            line-height: 1.5;
+        }
+
+        .comment-actions button {
+            background: none;
+            border: none;
+            color: #888;
+            cursor: pointer;
+            font-size: 0.85em;
+            margin-right: 10px;
+            transition: color 0.2s;
+        }
+
+        .comment-actions button:hover {
+            color: var(--primary-color);
+        }
+
+        .comment-actions .delete-btn:hover {
+            color: #cc0000;
+        }
+
+        /* Edit state styles */
+        .comment-card.editing textarea {
+            width: 100%;
+            min-height: 80px;
+            margin-top: 10px;
+            padding: 8px;
+            border: 1px solid var(--primary-color);
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        .comment-card.editing .comment-text {
+            display: none;
+        }
+        /* Style the comment area buttons/inputs to be enabled, as comments are usually dynamic */
+        .comment-input-area textarea {
+             border: 1px solid #ccc; /* Ensure comment area is still visible */
+        }
+    </style>
+</head>
+<body>
+    <div class="issue-container">
+        <div class="header">
+            <div class="actions">
+                <a href="Assign.html"><button class="secondary-btn">Edit</button></a>
+
+                <div class="dropdown-wrapper">
+                    <input type="checkbox" id="assign-toggle"> 
+                    <label for="assign-toggle" class="dropdown-label">
+                        Assign
+                    </label>
+                    <div class="dropdown-content">
+                        <div class="dropdown-item">
+                            <span class="user-avatar" style="background-color: var(--primary-color);"></span>
+                            Assign to Me
+                        </div>
+                        <div class="dropdown-item">
+                            <span class="user-avatar" style="background-color: #00b8d9;"></span>
+                            User 1
+                        </div>
+                        <div class="dropdown-item">
+                            <span class="user-avatar" style="background-color: #36b37e;"></span>
+                            user2
+                        </div>
+                        <div class="dropdown-item">
+                            <span class="user-avatar" style="background-color: #ff9933;"></span>
+                            user 3
+                        </div>
+                        <div class="dropdown-item">
+                            <span class="user-avatar" style="background-color: #ff5230;"></span>
+                            user 4
+                        </div>
+                    </div>
+                </div>
+                <button class="secondary-btn">More ▾</button>
+                <button class="error-btn">Denied</button>
+                <button class="secondary-btn">Save</button>
+            </div>
+            <div>
+                <button class="secondary-btn" onclick="exportToExcel()">Export to Excel 💾</button>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="details-col">
+                <div class="section-header">Details</div>
+
+                <div class="field-row">
+                    <div class="field-label">Type:</div>
+                    <div class="editable-field">
+                        <select name="type" disabled>
+                            <option value="private-claim" selected>Private Claim</option>
+                            <option value="public-claim">Public Claim</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="field-row">
+                    <div class="field-label">Priority:</div>
+                    <div class="editable-field">
+                        <select name="priority" disabled>
+                            <option value="p1">P1 - Highest</option>
+                            <option value="p3" selected>P2 - Medium</option>
+                            <option value="p5">P3 - Lowest</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="field-row">
+                    <div class="field-label">Labels:</div>
+                    <div class="editable-field">
+                        <input type="text" value="claims, audit" placeholder="Add labels (comma separated)" readonly disabled>
+                    </div>
+                </div>
+
+                <div class="field-row">
+                    <div class="field-label">First Name:</div>
+                    <div class="editable-field">
+                        <input type="text" value="Harry" readonly disabled>
+                    </div>
+                </div>
+                
+                <div class="field-row">
+                    <div class="field-label">Last Name:</div>
+                    <div class="editable-field">
+                        <input type="text" value="Potter" readonly disabled>
+                    </div>
+                </div>
+                
+                <div class="field-row">
+                    <div class="field-label">Date Billed:</div>
+                    <div class="editable-field">
+                        <input type="date" value="2024-08-15" readonly disabled>
+                    </div>
+                </div>
+                
+                <div class="field-row">
+                    <div class="field-label">Patient ID:</div>
+                    <div class="editable-field">
+                        <input type="text" value="100-3000876" readonly disabled>
+                    </div>
+                </div>
+                
+                <div class="field-row">
+                    <div class="field-label">Policy/Medicare #:</div>
+                    <div class="editable-field">
+                        <input type="text" value="76X78987XX78" readonly disabled>
+                    </div>
+                </div>
+
+                <div class="field-row">
+                    <div class="field-label">Invoice/Claim #:</div>
+                    <div class="editable-field">
+                        <input type="text" value="2313" readonly disabled>
+                    </div>
+                </div>
+
+                <div class="field-row">
+                    <div class="field-label">Reason:</div>
+                    <div class="editable-field">
+                        <input type="text" value="Unpaid" readonly disabled>
+                    </div>
+                </div>
+
+                <div class="field-row">
+                    <div class="field-label">Workflow Action:</div>
+                    <div class="editable-field">
+                        <input type="text" value="Research Remaining Balance" readonly disabled>
+                    </div>
+                </div>
+                
+                <div class="field-row">
+                    <div class="field-label">Insurance Payor:</div>
+                    <div class="editable-field">
+                        <select name="insurance" disabled>
+                            <option value="bcbs" selected>BCBS</option>
+                            <option value="aetna">Aetna</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="field-row">
+                    <div class="field-label">AR Amount:</div>
+                    <div class="editable-field">
+                        <input type="number" value="141" readonly disabled>
+                    </div>
+                </div>
+            </div>
+
+            <div class="details-col" style="flex: 0.8;">
+                <div class="section-header">Status</div>
+                <div class="field-row">
+                    <div class="editable-field">
+                        <select name="status" disabled>
+                            <option value="pending" selected>PENDING</option>
+                            <option value="in-progress">IN PROGRESS</option>
+                            <option value="closed">CLOSED</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="field-row" style="margin-top: -5px;">
+                    <div class="field-value"><small style="color: #333;"><a href="#"> (View Workflow)</a></small></div>
+                </div>
+
+                <div class="section-header">Resolution</div>
+                <div class="field-row">
+                    <div class="editable-field">
+                        <select name="resolution" disabled>
+                            <option value="unresolved" selected>Unresolved</option>
+                            <option value="resolved">Resolved</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="section-header">Security Level</div>
+                <div class="field-row">
+                    <div class="editable-field">
+                        <input type="text" value="Revenue Recovery" readonly disabled>
+                    </div>
+                </div>
+            </div>
+
+            <div class="people-dates-col" style="flex: 1.2;">
+                <div class="section-header">People</div>
+
+                <div class="field-row">
+                    <div class="field-label">Assignee:</div>
+                    <div class="editable-field">
+                        <select name="assignee" disabled>
+                            <option value="unassigned" selected>Unassigned</option>
+                            <option value="user1">User One</option>
+                            <option value="user2">User Two</option>
+                        </select>
+                        <br><a href="#" style="font-size: 0.9em; display: none;">Assign to me</a>
+                    </div>
+                </div>
+                
+                <div class="field-row" style="margin-top: 15px;">
+                    <div class="field-label">Reporter:</div>
+                    <div class="editable-field">
+                        <input type="text" value="Harry" readonly disabled>
+                    </div>
+                </div>
+                
+                <div class="field-row" style="margin-top: 15px;">
+                    <div class="field-label">Watchers:</div>
+                    <div class="field-value">
+                        <a href="#" style="font-size: 0.9em;">1 </a>
+                    </div>
+                </div>
+                
+                <div class="section-header">Dates</div>
+
+                <div class="field-row">
+                    <div class="field-label">Due:</div>
+                    <div class="editable-field">
+                        <input type="date" value="2025-10-03" readonly disabled>
+                    </div>
+                </div>
+                
+                <div class="field-row">
+                    <div class="field-label">Created:</div>
+                    <div class="field-value">12/Aug/25 11:40 PM</div>
+                </div>
+                
+                <div class="field-row">
+                    <div class="field-label">Updated:</div>
+                    <div class="field-value">29/Aug/25 11:41 PM</div>
+                </div>
+
+                <div class="field-row">
+                    <div class="field-label">Service End:</div>
+                    <div class="editable-field">
+                        <input type="date" value="2024-06-17" readonly disabled>
+                    </div>
+                </div>
+                
+                <div class="field-row">
+                    <div class="field-label">Service Start:</div>
+                    <div class="editable-field">
+                        <input type="date" value="2024-06-17" readonly disabled>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="comment-section">
+            <h3 class="section-header" style="border-top: none;">Comments</h3>
+
+            <div class="comment-input-area">
+                <textarea id="new-comment-text" placeholder="Add a comment..."></textarea>
+                <button class="comment-btn" onclick="addComment()">Post Comment</button>
+            </div>
+
+            <div class="comment-list" id="comment-list">
+                <p style="text-align: center; color: #888;">No comments yet. Be the first to post!</p>
+            </div>
+        </div>
+        </div>
+    
+    <script>
+        // Existing exportToExcel function (remains unchanged)
+        function exportToExcel() {
+            const container = document.querySelector('.issue-container');
+            if (!container) return;
+
+            // --- 1. Gather Data ---
+            let csvContent = "Field,Value\n"; // Header row
+
+            // Gather data from the Details column
+            container.querySelectorAll('.details-col .field-row').forEach(row => {
+                const labelElement = row.querySelector('.field-label');
+                // Target both form fields AND static .field-value divs
+                const valueElement = row.querySelector('.editable-field input, .editable-field select, .field-value');
+                
+                if (labelElement && valueElement) {
+                    // Get the label (Field Name)
+                    let label = labelElement.textContent.trim().replace(/:$/, ''); 
+
+                    // Get the value. Use the 'value' property for inputs/selects, otherwise use textContent.
+                    let value = (valueElement.tagName === 'INPUT' || valueElement.tagName === 'SELECT') 
+                                ? valueElement.value.trim() 
+                                : valueElement.textContent.trim();
+
+                    // Clean value for CSV (handle commas/quotes by enclosing in quotes)
+                    value = `"${value.replace(/"/g, '""')}"`;
+
+                    csvContent += `${label},${value}\n`;
+                }
+            });
+
+            // Add a separator for different sections if desired
+            csvContent += "\n--- People & Dates ---\n";
+
+            // Gather data from the People/Dates column
+            container.querySelectorAll('.people-dates-col .field-row').forEach(row => {
+                const labelElement = row.querySelector('.field-label');
+                const valueElement = row.querySelector('.editable-field input, .editable-field select, .field-value');
+                
+                if (labelElement && valueElement) {
+                    let label = labelElement.textContent.trim().replace(/:$/, ''); 
+                    let value = (valueElement.tagName === 'INPUT' || valueElement.tagName === 'SELECT') 
+                                ? valueElement.value.trim() 
+                                : valueElement.textContent.trim();
+                    value = `"${value.replace(/"/g, '""')}"`;
+                    csvContent += `${label},${value}\n`;
+                }
+            });
+            
+            // --- 2. Create and Download File ---
+            const filename = "issue-details.csv";
+            
+            // Create a Blob from the CSV string (using UTF-8 encoding)
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            
+            // Create a temporary link element
+            const link = document.createElement("a");
+            
+            // Use window.URL.createObjectURL for the download link
+            if (navigator.msSaveBlob) { 
+                // IE 10+
+                navigator.msSaveBlob(blob, filename);
+            } else {
+                // Chrome, Firefox, Safari
+                const url = URL.createObjectURL(blob);
+                link.setAttribute("href", url);
+                link.setAttribute("download", filename);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        }
+
+        /* --- JAVASCRIPT FOR COMMENT MANAGEMENT (Kept functional) --- */
+
+        let comments = []; 
+        const commentList = document.getElementById('comment-list');
+        const newCommentTextarea = document.getElementById('new-comment-text');
+
+        // Function to render all comments
+        function renderComments() {
+            commentList.innerHTML = '';
+            if (comments.length === 0) {
+                commentList.innerHTML = '<p style="text-align: center; color: #888;">No comments yet. Be the first to post!</p>';
+                return;
+            }
+
+            comments.forEach(comment => {
+                const card = document.createElement('div');
+                card.className = 'comment-card';
+                card.id = `comment-${comment.id}`;
+                
+                const dateOptions = { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+                const formattedDate = new Date(comment.date).toLocaleDateString(undefined, dateOptions);
+
+                card.innerHTML = `
+                    <div class="comment-meta">
+                        <div class="comment-author">${comment.author}</div>
+                        <div class="comment-date">${formattedDate}</div>
+                    </div>
+                    <div class="comment-text">${comment.text}</div>
+                    <textarea class="edit-textarea" style="display: none;">${comment.text}</textarea>
+                    <div class="comment-actions">
+                        <button onclick="toggleEdit(${comment.id})" class="edit-btn">Edit</button>
+                        <button onclick="saveComment(${comment.id})" class="save-btn" style="display: none;">Save</button>
+                        <button onclick="deleteComment(${comment.id})" class="delete-btn">Delete</button>
+                    </div>
+                `;
+                commentList.prepend(card); 
+            });
+        }
+
+        // ADD Comment
+        function addComment() {
+            const text = newCommentTextarea.value.trim();
+            if (text === '') {
+                alert('Comment cannot be empty.');
+                return;
+            }
+
+            const newComment = {
+                id: Date.now(), 
+                author: 'You (Current User)', 
+                text: text,
+                date: new Date().toISOString()
+            };
+
+            comments.push(newComment);
+            newCommentTextarea.value = ''; 
+            renderComments();
+        }
+
+        // TOGGLE Edit Mode
+        function toggleEdit(id) {
+            const card = document.getElementById(`comment-${id}`);
+            const isEditing = card.classList.toggle('editing');
+            
+            const editTextarea = card.querySelector('.edit-textarea');
+            const commentText = card.querySelector('.comment-text');
+            const editBtn = card.querySelector('.edit-btn');
+            const saveBtn = card.querySelector('.save-btn');
+
+            if (isEditing) {
+                commentText.style.display = 'none';
+                editTextarea.style.display = 'block';
+                editBtn.style.display = 'none';
+                saveBtn.style.display = 'inline-block';
+            } else {
+                commentText.style.display = 'block';
+                editTextarea.style.display = 'none';
+                editBtn.style.display = 'inline-block';
+                saveBtn.style.display = 'none';
+            }
+        }
+
+        // SAVE Comment
+        function saveComment(id) {
+            const card = document.getElementById(`comment-${id}`);
+            const newText = card.querySelector('.edit-textarea').value.trim();
+            
+            if (newText === '') {
+                alert('Comment cannot be empty.');
+                return;
+            }
+
+            const commentIndex = comments.findIndex(c => c.id === id);
+            if (commentIndex !== -1) {
+                comments[commentIndex].text = newText;
+            }
+
+            card.querySelector('.comment-text').textContent = newText;
+            toggleEdit(id);
+        }
+
+        // DELETE Comment
+        function deleteComment(id) {
+            if (confirm('Are you sure you want to delete this comment?')) {
+                comments = comments.filter(c => c.id !== id);
+                renderComments();
+            }
+        }
+
+        // Initial render when the page loads
+        document.addEventListener('DOMContentLoaded', renderComments);
+
+    </script>
+</body>
+</html>

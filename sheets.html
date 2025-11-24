@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spreadsheet View</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Your Provided CSS (omitted for brevity, but assumed to be linked/included) */
+        /* Paste all your CSS here, or link to it */
+
+        /* Using your global variables */
+        :root {
+            --primary-green: rgb(110, 110, 203);
+            --light-grey: #685cd9;
+            --text-dark: #333;
+            --text-light: #fff;
+            --input-border-color: #ccc;
+            --input-focus-color: #5BB69E;
+            --secondary-dark: #34495e;
+            --excel-border: #ddd; /* New variable for the light grey cell border */
+            --header-bg: #f5f5f5; /* Background for the column headers */
+        }
+        body {
+            /* Inherited from your CSS */
+            margin: 0;
+            font-family: 'Montserrat', sans-serif;
+            min-height: 100vh;
+            background-color: var(--light-grey);
+            display: block; /* Overriding flex to allow scrolling spreadsheet */
+            overflow-x: auto; /* Allow horizontal scrolling */
+            padding: 20px;
+        }
+
+        .spreadsheet-container {
+            width: fit-content; /* Container adapts to the content width */
+            margin: 30px auto;
+            background-color: var(--text-light);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            overflow: hidden; /* Contains the grid borders */
+        }
+
+        .spreadsheet-grid {
+            display: grid;
+            /* Defines 10 columns for the data + 1 column for the row number */
+            grid-template-columns: 40px repeat(10, minmax(120px, 1fr));
+            border-top: 1px solid var(--excel-border);
+            border-left: 1px solid var(--excel-border);
+            font-size: 0.9em;
+        }
+
+        .cell {
+            padding: 10px 8px;
+            border-right: 1px solid var(--excel-border);
+            border-bottom: 1px solid var(--excel-border);
+            color: var(--text-dark);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            line-height: 1.2;
+        }
+
+        /* Header Styles */
+        .header-cell {
+            background-color: var(--header-bg);
+            font-weight: 600;
+            text-align: center;
+            padding: 10px 8px;
+            border-right: 1px solid var(--excel-border);
+            border-bottom: 1px solid var(--excel-border);
+            color: var(--secondary-dark);
+        }
+
+        /* Row Number Column */
+        .row-number {
+            background-color: var(--header-bg);
+            color: #777;
+            font-weight: 500;
+            text-align: center;
+            padding: 10px 8px;
+            /* Using the .cell and .header-cell properties for border and padding */
+        }
+        
+        /* Specific Styles for the first cell (Top-Left Corner) */
+        .header-cell:first-child {
+            background-color: #eaeaea;
+            color: var(--text-dark);
+            font-size: 0.8em;
+            font-style: italic;
+        }
+
+        /* Style for interactive/editable cells (like an Excel sheet) */
+        .editable-cell {
+            background-color: #f7fff7; /* Slightly lighter background for data */
+            cursor: pointer;
+        }
+        .editable-cell:hover {
+            background-color: #e6f7ff; /* Highlight on hover */
+        }
+        .editable-cell.selected {
+            border: 1px solid var(--primary-green);
+            outline: 2px solid var(--primary-green);
+            z-index: 10;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="spreadsheet-container">
+        <div style="padding: 20px; background-color: var(--text-light); border-bottom: 1px solid #eee;">
+            <h1 class="page-title" style="margin: 0; color: var(--text-dark);">Spreadsheet Data View</h1>
+        </div>
+
+        <div class="spreadsheet-grid">
+            <div class="header-cell">#</div> <div class="header-cell">A: Project Name</div>
+            <div class="header-cell">B: Status</div>
+            <div class="header-cell">C: Assigned To</div>
+            <div class="header-cell">D: Start Date</div>
+            <div class="header-cell">E: Due Date</div>
+            <div class="header-cell">F: Priority</div>
+            <div class="header-cell">G: Budget ($)</div>
+            <div class="header-cell">H: Completion (%)</div>
+            <div class="header-cell">I: Last Updated</div>
+            <div class="header-cell">J: Notes</div>
+            
+            <div class="row-number cell">1</div>
+            <div class="cell editable-cell">Q4 Feature Rollout</div>
+            <div class="cell editable-cell"><span class="low task-priority" style="background-color: #3498DB;">In Progress</span></div>
+            <div class="cell editable-cell">Jane Doe</div>
+            <div class="cell editable-cell">2025-10-01</div>
+            <div class="cell editable-cell">2025-12-31</div>
+            <div class="cell editable-cell"><span class="high task-priority">High</span></div>
+            <div class="cell editable-cell" style="text-align: right;">15,000</div>
+            <div class="cell editable-cell" style="text-align: center;">45%</div>
+            <div class="cell editable-cell">2025-11-06</div>
+            <div class="cell editable-cell">Initial testing phase completed.</div>
+
+            <div class="row-number cell">2</div>
+            <div class="cell editable-cell">Website Redesign</div>
+            <div class="cell editable-cell"><span class="low task-priority" style="background-color: var(--primary-green);">Completed</span></div>
+            <div class="cell editable-cell">John Smith</div>
+            <div class="cell editable-cell">2025-08-15</div>
+            <div class="cell editable-cell">2025-10-30</div>
+            <div class="cell editable-cell"><span class="medium task-priority">Medium</span></div>
+            <div class="cell editable-cell" style="text-align: right;">8,500</div>
+            <div class="cell editable-cell" style="text-align: center;">100%</div>
+            <div class="cell editable-cell">2025-10-30</div>
+            <div class="cell editable-cell">Deployed to production environment.</div>
+
+            <div class="row-number cell">3</div>
+            <div class="cell editable-cell">Marketing Strategy Revamp</div>
+            <div class="cell editable-cell"><span class="low task-priority" style="background-color: #F39C12;">On Hold</span></div>
+            <div class="cell editable-cell">Alex Lee</div>
+            <div class="cell editable-cell">2026-01-01</div>
+            <div class="cell editable-cell">2026-03-31</div>
+            <div class="cell editable-cell"><span class="low task-priority">Low</span></div>
+            <div class="cell editable-cell" style="text-align: right;">10,000</div>
+            <div class="cell editable-cell" style="text-align: center;">10%</div>
+            <div class="cell editable-cell">2025-11-01</div>
+            <div class="cell editable-cell">Awaiting budget approval.</div>
+
+            <div class="row-number cell">4</div>
+            <div class="cell editable-cell"></div>
+            <div class="cell editable-cell"></div>
+            <div class="cell editable-cell"></div>
+            <div class="cell editable-cell"></div>
+            <div class="cell editable-cell"></div>
+            <div class="cell editable-cell"></div>
+            <div class="cell editable-cell"></div>
+            <div class="cell editable-cell"></div>
+            <div class="cell editable-cell"></div>
+            <div class="cell editable-cell"></div>
+            
+            </div>
+    </div>
+
+</body>
+</html>

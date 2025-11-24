@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patient Data Sheet Import</title>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        /* --- CORE STYLES (Company DASH Theme) --- */
+        :root {
+            --primary-color: #6c7be3; 
+            --secondary-color: #5a66d4;
+            --light-grey: #f7f7f9; 
+            --text-color: #333;
+            --footer-bg: #ffffff; 
+            --filter-active: #e6e9fc; 
+            --footer-height: 55px; 
+            --bulk-edit-bg: #f9f9fb;
+        }
+
+        body { 
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--light-grey);
+            padding: 30px 30px calc(var(--footer-height) + 20px) 30px; 
+        }
+        
+        .main-layout {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .container {
+            background-color: white; 
+            padding: 25px; 
+            border-radius: 6px; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08); 
+        }
+
+        /* --- BULK EDIT PANEL STYLES --- */
+        .bulk-edit-panel {
+            background-color: var(--bulk-edit-bg);
+            border: 1px solid #e0e0e0;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap; 
+            gap: 15px;
+        }
+        .bulk-edit-panel label {
+            font-weight: 500;
+            color: #555;
+            flex-shrink: 0;
+        }
+        .bulk-edit-panel select,
+        .bulk-edit-panel input[type="text"],
+        .bulk-edit-panel input[type="date"] {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 0.9em;
+            width: 150px; 
+            box-sizing: border-box;
+        }
+        #apply-bulk-btn {
+            padding: 8px 20px;
+            background-color: #00875a; 
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background-color 0.2s;
+        }
+        #apply-bulk-btn:hover {
+            background-color: #006642;
+        }
+
+        /* --- FIXED BOTTOM FOOTER PANEL (Status Sheets) --- */
+        .status-footer {
+            position: fixed; 
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 100; 
+            height: var(--footer-height);
+            background-color: var(--footer-bg);
+            border-top: 1px solid #e0e0e0;
+            box-shadow: 0 -2px 8px rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+            padding: 0 30px; 
+            box-sizing: border-box;
+        }
+
+        .filter-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex; 
+            overflow-x: auto; 
+            flex-grow: 1;
+        }
+        .filter-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 15px;
+            margin-right: 10px; 
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            font-weight: 500;
+            color: var(--text-color);
+            user-select: none;
+            white-space: nowrap; 
+        }
+        .filter-item.active {
+            background-color: var(--filter-active);
+            color: var(--primary-color);
+            font-weight: 700;
+            border-bottom: 3px solid var(--primary-color); 
+            border-radius: 4px 4px 0 0; 
+        }
+        .filter-count {
+            background-color: #e0e0e0;
+            color: #555;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            margin-left: 8px; 
+        }
+        .status-footer h2 {
+            font-size: 1em;
+            color: var(--primary-color);
+            margin-right: 20px;
+            font-weight: 600;
+        }
+
+
+        /* --- BUTTON & INPUT STYLES (Header Controls) --- */
+        .controls {
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        #upload-button {
+            padding: 10px 20px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background-color 0.2s;
+        }
+        #upload-button:hover {
+            background-color: var(--secondary-color);
+        }
+        #file-input {
+            display: none; 
+        }
+
+
+        /* --- TABLE STYLES --- */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9em;
+        }
+        .data-table th, .data-table td {
+            border: 1px solid #e0e0e0;
+            padding: 10px 12px;
+            text-align: left;
+            vertical-align: middle;
+        }
+        /* Style for the new Checkbox column */
+        .data-table th:first-child, .data-table td:first-child {
+            width: 30px;
+            text-align: center;
+            padding: 8px 4px;
+        }
+
+        .data-table th {
+            background-color: #f0f0f5; 
+            color: var(--text-color);
+            font-weight: 600;
+            position: sticky; 
+            top: 0;
+            z-index: 2;
+        }
+        .data-table tbody tr:hover {
+            background-color: #f7f9fd; 
+        }
+        
+        /* Styling for editable fields inside the table */
+        .data-table input[type="date"], .data-table input[type="text"], .data-table select {
+            border: 1px solid #ccc;
+            padding: 4px;
+            border-radius: 3px;
+            font-size: 0.9em;
+            width: 100%;
+            box-sizing: border-box;
+            background-color: #fff;
+        }
+        .status-select option[value="Pending"] {
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+        .status-select option[value="Resolved"] {
+            color: #36b37e;
+            font-weight: 600;
+        }
+        .data-table .action-btn {
+            background-color: #36b37e;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-layout">
+        <div class="container">
+            <h1>Patient Records Dashboard</h1>
+
+            <div class="controls">
+                <input type="file" id="file-input" accept=".csv, .xlsx">
+                <button id="upload-button" onclick="document.getElementById('file-input').click()">
+                    📤 Upload Excel/CSV File
+                </button>
+                <span id="file-name-display" style="color: #888;">No file selected.</span>
+            </div>
+            
+            <div class="bulk-edit-panel">
+                <label>Bulk Actions:</label>
+
+                <select id="bulk-status-select">
+                    <option value="">-- Change Status --</option>
+                    <option value="New">New</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Resolved">Resolved</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="Denied">Denied</option>
+                    <option value="Closed">Closed</option>
+                </select>
+
+                <input type="text" id="bulk-assignee" placeholder="Assigned By">
+
+                <input type="date" id="bulk-next-follow-up-date">
+
+                <button id="apply-bulk-btn" onclick="bulkUpdate()">Apply to Selected</button>
+              <a href="demos.html">  <button id="apply-bulk-btn">Demos</button> </a>
+            </div>
+            <div style="max-height: 70vh; overflow-y: auto; border: 1px solid #e0e0e0; border-radius: 6px;">
+                <table class="data-table" id="patient-data-table">
+                    <thead>
+                        <tr>
+                            <th><input type="checkbox" id="select-all-checkbox" onclick="toggleAllCheckboxes(this)"></th>
+                            <th>Patient Name</th>
+                            <th>MRN #</th>
+                            <th>Invoice #</th>
+                            <th>Primary Insurance Name</th>
+                            <th>Policy ID</th>
+                            <th>DOB</th>
+                            <th>Charge Amount</th>
+                            <th>Balance Amount</th>
+                            <th>DOS</th>
+                            <th>Comments</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                            <th>Next follow up date</th>
+                            <th>Allocated To</th>
+                            <th>Assigned By</th> </tr>
+                    </thead>
+                    <tbody id="table-body">
+                        <tr><td colspan="16" style="text-align: center; color: #888;">Upload a file to populate the data.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        </div>
+
+    <div class="status-footer">
+        <h2>Status Sheets:</h2>
+        <ul class="filter-list" id="status-filter-list">
+            <li class="filter-item active" data-status="All" onclick="filterTable('All', this)">
+                <span>All Records</span>
+                <span class="filter-count" id="count-All">0</span>
+            </li>
+        </ul>
+    </div>
+    <script>
+        const tableBody = document.getElementById('table-body');
+        const fileInput = document.getElementById('file-input');
+        const fileNameDisplay = document.getElementById('file-name-display');
+        const filterList = document.getElementById('status-filter-list');
+        
+        // Bulk Edit Inputs
+        const bulkStatusSelect = document.getElementById('bulk-status-select');
+        const bulkAssigneeInput = document.getElementById('bulk-assignee'); 
+        const bulkNextFollowUpDateInput = document.getElementById('bulk-next-follow-up-date');
+        
+        let globalData = []; 
+        let currentActiveStatus = 'All';
+        let currentActiveElement = null; 
+        
+        const STATUSES = ['New', 'Pending', 'Resolved', 'In Progress', 'Denied', 'Closed']; 
+
+        // --- File Loading Logic ---
+
+        fileInput.addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            fileNameDisplay.textContent = `File selected: ${file.name}`;
+            const fileExtension = file.name.split('.').pop().toLowerCase();
+
+            const processData = (data) => {
+                globalData = data.map((row, index) => ({
+                    ...row,
+                    _id: row._id || (row['Invoice #'] ? row['Invoice #'] : Date.now() + index), 
+                    Status: row['Status'] || row['status'] || 'New'
+                }));
+                
+                currentActiveElement = document.querySelector('[data-status="All"]');
+                currentActiveStatus = 'All';
+
+                buildFilters(globalData); 
+                filterTable(currentActiveStatus, currentActiveElement); 
+            };
+
+            if (fileExtension === 'xlsx' || fileExtension === 'xls') {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const worksheet = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+                    processData(worksheet);
+                };
+                reader.readAsArrayBuffer(file);
+            } else if (fileExtension === 'csv') {
+                Papa.parse(file, {
+                    header: true,
+                    skipEmptyLines: true,
+                    complete: function(results) {
+                        processData(results.data);
+                    },
+                    error: function(error) {
+                        console.error("CSV Parsing Error:", error);
+                        alert("Error parsing the file. Please ensure it is a valid CSV format.");
+                    }
+                });
+            } else {
+                alert("Please upload a valid CSV or XLSX file.");
+            }
+        });
+
+        // --- Core Filter & Render Logic ---
+
+        function buildFilters(data) {
+            const statusCounts = {'All': data.length};
+            STATUSES.forEach(status => {
+                statusCounts[status] = 0;
+            });
+
+            data.forEach(row => {
+                const status = row.Status; 
+                if (statusCounts.hasOwnProperty(status)) {
+                    statusCounts[status]++;
+                } else {
+                    statusCounts['New']++;
+                }
+            });
+
+            let filterHtml = `
+                <li class="filter-item" data-status="All" onclick="filterTable('All', this)">
+                    <span>All Records</span>
+                    <span class="filter-count" id="count-All">${statusCounts['All']}</span>
+                </li>
+            `;
+            
+            STATUSES.forEach(status => {
+                filterHtml += `
+                    <li class="filter-item" data-status="${status}" onclick="filterTable('${status}', this)">
+                        <span>${status}</span>
+                        <span class="filter-count" id="count-${status}">${statusCounts[status] || 0}</span>
+                    </li>
+                `;
+            });
+            
+            filterList.innerHTML = filterHtml;
+            
+            document.querySelectorAll('.filter-item').forEach(item => item.classList.remove('active'));
+            const activeElement = document.querySelector(`[data-status="${currentActiveStatus}"]`);
+            if (activeElement) {
+                activeElement.classList.add('active');
+                currentActiveElement = activeElement;
+            }
+        }
+
+
+        function filterTable(status, element) {
+            document.querySelectorAll('.filter-item').forEach(item => item.classList.remove('active'));
+            element.classList.add('active');
+            currentActiveStatus = status;
+            currentActiveElement = element;
+
+            const filteredData = status === 'All' 
+                ? globalData 
+                : globalData.filter(row => row.Status === status);
+
+            populateTable(filteredData);
+        }
+
+        function populateTable(data) {
+            tableBody.innerHTML = ''; 
+            document.getElementById('select-all-checkbox').checked = false; 
+
+            if (data.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="16" style="text-align: center; color: #888;">No records match the current filter.</td></tr>';
+                return;
+            }
+
+            data.forEach(rowData => {
+                const row = tableBody.insertRow();
+                row.dataset.id = rowData._id; 
+                
+                // --- Data Retrieval ---
+                // Check multiple file header variations to find the correct data
+                const currentAllocatedTo = rowData['Allocated To'] || rowData['Allocated to'] || rowData['AllocatedTo'] || '';
+                const currentAssignee = rowData['Assignee'] || rowData['Assigned by'] || rowData['Assigned to'] || rowData['AssignedTo'] || '';
+
+                
+                // Standardize keys in the global data object for consistency
+                rowData['Allocated To'] = currentAllocatedTo;
+                rowData['Assignee'] = currentAssignee; 
+                // ----------------------
+
+
+                const columnData = [
+                    // Checkbox column
+                    `<input type="checkbox" class="row-checkbox" data-id="${rowData._id}">`,
+                    rowData['Patient Name'] || rowData['PatientName'] || '',
+                    rowData['MRN #'] || rowData['MRN'] || '',
+                    rowData['Invoice #'] || rowData['Invoice'] || '',
+                    rowData['Primary Insurance Name'] || rowData['InsuranceName'] || '',
+                    rowData['Policy ID'] || rowData['PolicyID'] || '',
+                    rowData['DOB'] || '',
+                    rowData['Charge Amount'] || rowData['ChargeAmount'] || '',
+                    rowData['Balance Amount'] || rowData['BalanceAmount'] || '',
+                    rowData['DOS'] || '',
+                    rowData['Comments'] || '',
+                    rowData.Status, 
+                    rowData['Next follow up date'] || rowData['NextFollowUpDate'] || '',
+                    currentAllocatedTo, 
+                    currentAssignee, 
+                ];
+
+                // Data Column Indexing:
+                // [0] Checkbox
+                // [11] Status
+                // [12] Actions
+                // [13] Next follow up date
+                // [14] Allocated To (Input)
+                // [15] Assigned By (Input - key is 'Assignee')
+
+                columnData.forEach((colContent, index) => {
+                    const cell = row.insertCell(index);
+
+                    if (index === 0) { 
+                         cell.innerHTML = colContent;
+                    } else if (index === 11) { 
+                        let options = STATUSES.map(s => 
+                            `<option value="${s}" ${rowData.Status === s ? 'selected' : ''}>${s}</option>`
+                        ).join('');
+                        cell.innerHTML = `<select class="status-select" onchange="updateStatus(this, '${rowData._id}')">${options}</select>`;
+                    } else if (index === 12) { 
+                        cell.innerHTML = '<button class="action-btn">View/Edit</button>';
+                    } else if (index === 13) { 
+                        cell.innerHTML = `<input type="date" value="${rowData['Next follow up date'] || rowData['NextFollowUpDate'] || ''}" onchange="updateCell(this, 'Next follow up date', '${rowData._id}')">`;
+                    } else if (index === 14) { // Allocated To
+                        // The updateCell function uses the standardized string 'Allocated To'
+                        cell.innerHTML = `<input type="text" value="${currentAllocatedTo}" onchange="updateCell(this, 'Allocated To', '${rowData._id}')">`;
+                    } else if (index === 15) { // Assigned By (Internal key is 'Assignee')
+                        // The updateCell function uses the standardized string 'Assignee'
+                        cell.innerHTML = `<input type="text" value="${currentAssignee}" onchange="updateCell(this, 'Assignee', '${rowData._id}')">`;
+                    } else {
+                        cell.innerHTML = colContent;
+                    }
+                });
+            });
+        }
+
+        // --- Checkbox and Bulk Update Logic ---
+
+        function toggleAllCheckboxes(source) {
+            const checkboxes = document.querySelectorAll('.row-checkbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = source.checked;
+            });
+        }
+
+        function bulkUpdate() {
+            const selectedCheckboxes = document.querySelectorAll('.row-checkbox:checked');
+            if (selectedCheckboxes.length === 0) {
+                alert("Please select at least one row to update.");
+                return;
+            }
+
+            const newStatus = bulkStatusSelect.value;
+            const newAssignee = bulkAssigneeInput.value.trim(); 
+            const newNextFollowUpDate = bulkNextFollowUpDateInput.value;
+
+            if (!newStatus && !newAssignee && !newNextFollowUpDate) {
+                alert("Please specify at least one field to change in the Bulk Actions panel.");
+                return;
+            }
+
+            globalData.forEach(row => {
+                const isSelected = Array.from(selectedCheckboxes).some(cb => cb.dataset.id == row._id);
+
+                if (isSelected) {
+                    let changesMade = false;
+
+                    if (newStatus) {
+                        row.Status = newStatus;
+                        changesMade = true;
+                    }
+
+                    if (newAssignee) {
+                        // Uses the internal key 'Assignee'
+                        row['Assignee'] = newAssignee;
+                        changesMade = true;
+                    }
+
+                    if (newNextFollowUpDate) {
+                        row['Next follow up date'] = newNextFollowUpDate;
+                        changesMade = true;
+                    }
+
+                    if (changesMade) {
+                        console.log(`Bulk Updated Row ${row._id}: Status=${row.Status}, Assignee=${row['Assignee']}, NextFollowUpDate=${row['Next follow up date']}`);
+                    }
+                }
+            });
+
+            // 1. Clear bulk edit inputs
+            bulkStatusSelect.value = '';
+            bulkAssigneeInput.value = '';
+            bulkNextFollowUpDateInput.value = '';
+            
+            // 2. Re-calculate counts and filter the table view
+            buildFilters(globalData);
+            filterTable(currentActiveStatus, currentActiveElement);
+        }
+
+        // --- Single Row Update Logic ---
+
+        function updateStatus(selectElement, rowId) {
+            const newStatus = selectElement.value;
+            const rowIndex = globalData.findIndex(row => row._id == rowId);
+
+            if (rowIndex > -1) {
+                globalData[rowIndex].Status = newStatus;
+                
+                buildFilters(globalData);
+                filterTable(currentActiveStatus, currentActiveElement);
+            }
+        }
+
+        function updateCell(inputElement, fieldName, rowId) {
+            const newValue = inputElement.value;
+            const rowIndex = globalData.findIndex(row => row._id == rowId);
+
+            if (rowIndex > -1) {
+                // fieldName will be 'Allocated To' or 'Assignee'
+                globalData[rowIndex][fieldName] = newValue;
+                console.log(`Updated Row ${rowId}: ${fieldName} set to ${newValue}`);
+            }
+        }
+    </script>
+</body>
+</html>

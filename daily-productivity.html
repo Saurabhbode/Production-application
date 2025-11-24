@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Productivity Tracker</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="dashboard-layout">
+        
+        <aside class="sidebar">
+            <div class="logo">Company <span style="font-weight: 700;">DASH</span></div>
+            <nav class="nav-links">
+                <a href="dashboard.html" class="nav-item"><i class="fas fa-home"></i> Dashboard</a>
+                <a href="profile.html" class="nav-item"><i class="fas fa-user-tie"></i> Profile</a>
+                <a href="daily-productivity.html" class="nav-item active"><i class="fas fa-tasks"></i> Daily Productivity</a> 
+                <a href="projects.html" class="nav-item"><i class="fas fa-project-diagram"></i> Projects</a> 
+                <a href="#" class="nav-item"><i class="fas fa-chart-bar"></i> Reports</a> 
+                <a href="Table.html" class="nav-item"><i class="fas fa-chart-bar"></i> Sheets</a> 
+            </nav>
+            <div class="logout-section">
+                <a href="index.html" class="nav-item logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</a>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            
+            <header class="dashboard-header">
+                <h1 class="page-title">Daily Productivity Entry</h1>
+                <div class="header-right">
+                    <i class="fas fa-bell notification-icon"></i>
+                    <div class="user-avatar">EN</div>
+                </div>
+            </header>
+
+            <section class="productivity-filters card">
+                <h3 class="card-subtitle">Select Filters for Data Entry</h3>
+                <div class="filter-controls">
+                    
+                    <div class="filter-group">
+                        <label for="department-select">Department:</label>
+                        <select id="department-select" class="custom-select">
+                            <option value="" disabled selected>-- Choose Department --</option>
+                            <option value="billing">Billing & Posting</option>
+                            <option value="ar">Accounts Receivable</option>
+                            <option value="coding">Coding</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label for="project-select">Project:</label>
+                        <select id="project-select" class="custom-select">
+                            <option value="" disabled selected>-- Choose Project --</option>
+                            <option value="pmb">PMB</option>
+                            <option value="pbmi">PBMI</option>
+                            <option value="simitree">Simitree</option>
+                            <option value="ortho">Ortho</option>
+                            <option value="wiseowl">Wise Owl</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="date-select">Date:</label>
+                        <input type="date" id="date-select" class="custom-input" value="2025-10-25">
+                    </div>
+                    
+                    <button class="filter-btn" id="loadFieldsBtn"><i class="fas fa-sync"></i> Load Entry Fields</button>
+                </div>
+            </section>
+
+            <section id="promptMessage" class="card hidden-message">
+                <h3 style="color: #666;"><i class="fas fa-info-circle"></i> Please select a **Department** and **Project** to view the production fields.</h3>
+            </section>
+
+            <section id="entryFormContainer" class="productivity-data-entry card hidden-content">
+                <h3 class="card-subtitle">Update Your Daily Production Counts</h3>
+                <form id="productionEntryForm">
+                    <div class="entry-grid">
+                        
+                        <div class="entry-group"><label for="era-posting">ERA Posting:</label><input type="number" id="era-posting" name="era_posting" placeholder="0" min="0"></div>
+                        <div class="entry-group"><label for="manual-posting">Manual Posting:</label><input type="number" id="manual-posting" name="manual_posting" placeholder="0" min="0"></div>
+                        <div class="entry-group"><label for="billing">Billing:</label><input type="number" id="billing" name="billing" placeholder="0" min="0"></div>
+                        <div class="entry-group"><label for="noa-billing">NOA Billing:</label><input type="number" id="noa-billing" name="noa_billing" placeholder="0" min="0"></div>
+                        <div class="entry-group"><label for="email-count">Email:</label><input type="number" id="email-count" name="email_count" placeholder="0" min="0"></div>
+                        <div class="entry-group"><label for="review-count">Review:</label><input type="number" id="review-count" name="review_count" placeholder="0" min="0"></div>
+                        <div class="entry-group"><label for="correspondence">Correspondence:</label><input type="number" id="correspondence" name="correspondence" placeholder="0" min="0"></div>
+                        
+                        <div class="entry-group notes-group">
+                            <label for="notes">Notes:</label>
+                            <textarea id="notes" name="notes" placeholder="Any issues or details..."></textarea>
+                        </div>
+                        
+                    </div>
+                    
+                    <button type="submit" class="save-production-btn"><i class="fas fa-save"></i> Save Production Data</button>
+                </form>
+            </section>
+        </main>
+    </div>
+
+    <script src="daily-productivity.js"></script> 
+</body>
+</html>
